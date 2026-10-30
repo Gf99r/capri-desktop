@@ -3149,6 +3149,7 @@ namespace CapriDesktop
         {
             internal const int Wide = 900, Tall = 470, Column = 410;
             internal readonly float Zoom;
+            private readonly float layoutZoom;
             private readonly Mainframe owner;
             private readonly Slider presets;
             private readonly Readout presetName;
@@ -3165,6 +3166,7 @@ namespace CapriDesktop
                 Rectangle work = Screen.FromControl(owner).WorkingArea;
                 zoom = Math.Min(zoom, Math.Min(work.Width / (float)Wide, work.Height / (float)Tall));
                 zoom = Math.Max(0.5f, zoom);
+                layoutZoom = zoom;
                 Text = "Security";
                 Icon = owner.Icon;
                 ShowInTaskbar = false;
@@ -3221,7 +3223,7 @@ namespace CapriDesktop
                 Sync();
             }
 
-            private int Z(int value) { return (int)Math.Round(value * Zoom); }
+            private int Z(int value) { return (int)Math.Round(value * layoutZoom); }
 
             private Rectangle Box(int x, int y, int width, int height) { return new Rectangle(Z(x), Z(y), Z(width), Z(height)); }
 
