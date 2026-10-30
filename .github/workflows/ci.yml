@@ -68,10 +68,18 @@ jobs:
       - name: Package Electron companion with its runtime
         shell: pwsh
         run: |
-          npm ci --prefix integrations/capri-desktop1
-          npm exec --prefix integrations/capri-desktop1 -- electron-builder --win --dir
+          Push-Location integrations/capri-desktop1
+          try {
+            npm ci
+            npx electron-builder --win --dir
+          }
+          finally {
+            Pop-Location
+          }
+          $companionOutput = 'integrations/capri-desktop1/dist/win-unpacked'
+          if (-not (Test-Path -LiteralPath $companionOutput)) { throw "Electron packaging did not produce $companionOutput" }
           New-Item -ItemType Directory -Force out/standalone/companion | Out-Null
-          Copy-Item integrations/capri-desktop1/dist/win-unpacked/* out/standalone/companion -Recurse -Force
+          Copy-Item "$companionOutput/*" out/standalone/companion -Recurse -Force
       - name: Assemble standalone launcher
         shell: pwsh
         run: Copy-Item packaging/Launch-CAPRI.ps1 out/standalone/Launch-CAPRI.ps1
