@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { patchMain, OLD_IMPORT, OLD_DEV, OLD_MAIN_BLOCK } = require('../apply-companion-adapter.cjs');
+const { patchMain, patchHookTests, OLD_IMPORT, OLD_DEV, OLD_MAIN_BLOCK, OLD_HOOK_TEST_STRINGS, NEW_HOOK_TEST_STRINGS } = require('../apply-companion-adapter.cjs');
 
 function fixture() {
   return [
@@ -38,4 +38,11 @@ test('is idempotent', () => {
 
 test('rejects an unexpected companion revision instead of applying a partial patch', () => {
   assert.throws(() => patchMain("'use strict';"), /could not uniquely locate/);
+});
+
+test('makes the pinned companion translation test helper tolerate null values', () => {
+  const patched = patchHookTests(OLD_HOOK_TEST_STRINGS);
+  assert.equal(patched, NEW_HOOK_TEST_STRINGS);
+  assert.equal(patchHookTests(patched), patched);
+  assert.throws(() => patchHookTests('unexpected source'), /could not uniquely locate/);
 });

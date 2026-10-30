@@ -34,11 +34,25 @@ function patchMain(input) {
   return source.replace(/\n/g, originalEol);
 }
 
+const OLD_HOOK_TEST_STRINGS = "const strings = (value) => typeof value === 'string' ? [value] : Object.values(value).flatMap(strings);";
+const NEW_HOOK_TEST_STRINGS = "const strings = (value) => typeof value === 'string' ? [value] : value && typeof value === 'object' ? Object.values(value).flatMap(strings) : [];";
+
+function patchHookTests(input) {
+  if (input.includes(NEW_HOOK_TEST_STRINGS)) return input;
+  return replaceExactly(input, OLD_HOOK_TEST_STRINGS, NEW_HOOK_TEST_STRINGS, 'the companion translation-test helper');
+}
+
 function apply(companionRoot, adapterPath) {
   const mainPath = path.join(companionRoot, 'src', 'main', 'main.js');
   const source = fs.readFileSync(mainPath, 'utf8');
   const patched = patchMain(source);
   if (patched !== source) fs.writeFileSync(mainPath, patched, 'utf8');
+  const hookTestsPath = path.join(companionRoot, 'tests', 'hooks.test.js');
+  if (fs.existsSync(hookTestsPath)) {
+    const hookTests = fs.readFileSync(hookTestsPath, 'utf8');
+    const patchedTests = patchHookTests(hookTests);
+    if (patchedTests !== hookTests) fs.writeFileSync(hookTestsPath, patchedTests, 'utf8');
+  }
   fs.copyFileSync(adapterPath, path.join(companionRoot, 'src', 'main', 'core-bridge.js'));
 }
 
@@ -58,4 +72,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { apply, patchMain, OLD_IMPORT, OLD_DEV, OLD_MAIN_BLOCK };
+module.exports = { apply, patchMain, patchHookTests, OLD_IMPORT, OLD_DEV, OLD_MAIN_BLOCK, OLD_HOOK_TEST_STRINGS, NEW_HOOK_TEST_STRINGS };
