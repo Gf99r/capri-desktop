@@ -9,12 +9,12 @@ diff --git a/src/main/main.js b/src/main/main.js
  const { startWindowWatch } = require('./windows');
  const llm = require('./llm');
  const ollama = require('./ollama');
-@@ -31,6 +32,7 @@ const ROOT = path.resolve(__dirname, '..', '..');
+@@ -31,3 +32,4 @@ const ROOT = path.resolve(__dirname, '..', '..');
  const DEV = process.argv.includes('--dev');
 +const CORE_MODE = process.env.CAPRI_CORE_MODE === '1';
  const PORT = Number(process.env.CAPRI_PORT) || 47823;
  const SOUND_EXT = /\.(mp3|wav|ogg|m4a)$/i;
-@@ -475,30 +477,40 @@ function main() {
+@@ -475,44 +477,54 @@ function main() {
    app.whenReady().then(() => {
      if (!['codex', 'claude'].includes(config.load().assistant)) config.save({ assistant: activeAssistant().id });
      serveProtocol();
