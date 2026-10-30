@@ -3149,6 +3149,7 @@ namespace CapriDesktop
         {
             internal const int Wide = 900, Tall = 470, Column = 410;
             internal readonly float Zoom;
+            private readonly float layoutZoom;
             private readonly Mainframe owner;
             private readonly Slider presets;
             private readonly Readout presetName;
@@ -3160,12 +3161,19 @@ namespace CapriDesktop
             {
                 this.owner = owner;
                 Zoom = zoom;
+                // Fit the panel to the available display. CI runners can have smaller desktops than
+                // users' monitors, so high-zoom previews must not be clipped off-screen.
+                Rectangle work = Screen.FromControl(owner).WorkingArea;
+                zoom = Math.Min(zoom, Math.Min(work.Width / (float)Wide, work.Height / (float)Tall));
+                zoom = Math.Max(0.5f, zoom);
+                layoutZoom = zoom;
                 Text = "Security";
                 Icon = owner.Icon;
                 ShowInTaskbar = false;
                 FormBorderStyle = FormBorderStyle.None;
                 StartPosition = FormStartPosition.Manual;
-                AutoScaleMode = AutoScaleMode.Dpi;
+                // All controls and the client area are explicitly scaled by Z(zoom); avoid scaling twice.
+                AutoScaleMode = AutoScaleMode.None;
                 AutoScaleDimensions = new SizeF(96, 96);
                 Font = Type(9f * zoom);
                 BackColor = Ground;
@@ -3215,7 +3223,7 @@ namespace CapriDesktop
                 Sync();
             }
 
-            private int Z(int value) { return (int)Math.Round(value * Zoom); }
+            private int Z(int value) { return (int)Math.Round(value * layoutZoom); }
 
             private Rectangle Box(int x, int y, int width, int height) { return new Rectangle(Z(x), Z(y), Z(width), Z(height)); }
 

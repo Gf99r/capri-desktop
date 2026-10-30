@@ -294,3 +294,53 @@ Free for anything non-commercial: use her, share her, change her. No selling her
 Have fun and more updates to come!
 
 <sub>Window perch and music perch animations: her artist, who prefers to stay private. Setup guide based on Dancer's guide in the Discord. Font: Share Tech Mono (OFL). Free voice: Kokoro-82M (Apache-2.0). Her own ears: [NVIDIA Parakeet TDT 0.6B v2](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2) for English and [v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) for 25 European languages ([CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/)), int8 exports by sherpa-onnx. Both run with [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) (Apache-2.0). HD voice: [Qwen3-TTS 1.7B](https://github.com/QwenLM/Qwen3-TTS) (Apache-2.0), run with [qwentts.cpp](https://github.com/ServeurpersoCom/qwentts.cpp) (MIT).</sub>
+
+
+## Mega CAPRI integration (preview)
+
+The unified desktop setup keeps the existing .NET CAPRI application as the visible assistant and runs the newer Electron companion as a background coding-agent observer. The companion adds event awareness for Claude Code, Codex and Antigravity; its original source, assets, tests and PolyForm Noncommercial license are retained as a pinned Git submodule at `integrations/capri-desktop1`. Coding-agent events cross a loopback-only, token-authenticated HTTP bridge and appear in the .NET CAPRI speech bubble. Only the assistant name, hook event name and tool name are forwarded; prompts, file contents, commands, and tool arguments are not sent to the bridge.
+
+### Set up
+
+On Windows, macOS or Linux, install Git, Node.js 20 or newer, and the .NET 10 SDK. Then run the setup script for your platform. On Windows:
+
+```powershell
+./scripts/setup-mega-capri.ps1
+```
+
+On macOS or Linux:
+```bash
+./scripts/setup-mega-capri.sh
+```
+
+To also install the companion's opt-in hooks for all three coding agents:
+
+```powershell
+./scripts/setup-mega-capri.ps1 -InstallHooks
+```
+
+The setup script builds the unified .NET desktop host and runs both bridge and companion hook tests. To also install coding-agent hooks on macOS/Linux, pass `--install-hooks` to the shell setup script. Hook installation modifies the respective coding-agent configuration files.
+
+Launch the unified experience on Windows:
+
+```powershell
+./scripts/start-mega-capri.ps1
+```
+
+On macOS or Linux:
+```bash
+./scripts/start-mega-capri.sh
+```
+
+On Windows, use `-SkipCore` only when you intentionally want the companion's standalone Electron UI instead of the unified .NET host. The normal unified launch requires the .NET host built by setup. The companion's original hook bridge binds to `127.0.0.1` and keeps its existing event filtering and payload limits. Hook installation changes the respective coding-agent configuration files; it is therefore an explicit setup option, not an automatic side effect.
+
+The companion remains a separately built Electron process, but in the unified launch it runs without a second desktop character; the .NET app owns the visible character and voice. The bridge token is generated per launch and passed only to those two child processes. The two original repositories remain unchanged. The companion source is pinned to a specific commit so builds are reproducible. Both projects' original license and attribution notices must accompany any redistribution.
+
+
+## Standalone Windows installer
+
+The Mega CAPRI integration produces a Windows installer that bundles the .NET host, its .NET runtime, and the Electron companion runtime. End users do not need to install Git, Node.js, or the .NET SDK.
+
+The installer is published as the **CAPRI-Mega-Windows-Installer** artifact by the `standalone-windows` GitHub Actions job. Download the artifact from the latest successful workflow run, extract it, and run `CAPRI-Mega-Setup.exe`.
+
+This is currently a Windows x64 package. The build still uses Git, Node.js, and the .NET SDK in GitHub Actions; they are build-time tools only.
