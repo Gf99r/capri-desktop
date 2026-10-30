@@ -335,3 +335,12 @@ On macOS or Linux:
 On Windows, use `-SkipCore` only when you intentionally want the companion's standalone Electron UI instead of the unified .NET host. The normal unified launch requires the .NET host built by setup. The companion's original hook bridge binds to `127.0.0.1` and keeps its existing event filtering and payload limits. Hook installation changes the respective coding-agent configuration files; it is therefore an explicit setup option, not an automatic side effect.
 
 The companion remains a separately built Electron process, but in the unified launch it runs without a second desktop character; the .NET app owns the visible character and voice. The bridge token is generated per launch and passed only to those two child processes. The two original repositories remain unchanged. The companion source is pinned to a specific commit so builds are reproducible. Both projects' original license and attribution notices must accompany any redistribution.
+
+
+## Standalone Windows installer
+
+The Mega CAPRI integration produces a Windows installer that bundles the .NET host, its .NET runtime, and the Electron companion runtime. End users do not need to install Git, Node.js, or the .NET SDK.
+
+The installer is published as the **CAPRI-Mega-Windows-Installer** artifact by the `standalone-windows` GitHub Actions job. Download the artifact from the latest successful workflow run, extract it, and run `CAPRI-Mega-Setup.exe`.
+
+This is currently a Windows x64 package. The build still uses Git, Node.js, and the .NET SDK in GitHub Actions; they are build-time tools only.
