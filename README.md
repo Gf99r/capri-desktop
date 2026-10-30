@@ -302,10 +302,15 @@ The unified desktop setup keeps the existing .NET CAPRI application as the visib
 
 ### Set up
 
-On Windows, with Git and Node.js 20 or newer installed:
+On Windows, macOS or Linux, install Git, Node.js 20 or newer, and the .NET 10 SDK. Then run the setup script for your platform. On Windows:
 
 ```powershell
 ./scripts/setup-mega-capri.ps1
+```
+
+On macOS or Linux:
+```bash
+./scripts/setup-mega-capri.sh
 ```
 
 To also install the companion's opt-in hooks for all three coding agents:
@@ -314,10 +319,17 @@ To also install the companion's opt-in hooks for all three coding agents:
 ./scripts/setup-mega-capri.ps1 -InstallHooks
 ```
 
-Build the main CAPRI app using the existing instructions above, then launch the unified experience:
+The setup script builds the unified .NET desktop host and runs both bridge and companion hook tests. To also install coding-agent hooks on macOS/Linux, pass `--install-hooks` to the shell setup script. Hook installation modifies the respective coding-agent configuration files.
+
+Launch the unified experience on Windows:
 
 ```powershell
 ./scripts/start-mega-capri.ps1
+```
+
+On macOS or Linux:
+```bash
+./scripts/start-mega-capri.sh
 ```
 
 Use `-SkipCore` to launch only the coding-agent companion. The companion's hook bridge binds to `127.0.0.1` and keeps its existing event filtering and payload limits. Hook installation changes the respective coding-agent configuration files; it is therefore an explicit setup option, not an automatic side effect.

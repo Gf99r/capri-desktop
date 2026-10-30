@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Security.Cryptography;
@@ -17,10 +19,11 @@ namespace CapriDesktop
 
     internal sealed class CodingAgentBridge : IDisposable
     {
-        private readonly HttpListener listener = new HttpListener();
+        private readonly TcpListener listener;
         private readonly string token;
         private readonly Action<string> received;
         private readonly Thread worker;
+        private readonly object gate = new object();
         private volatile bool stopped;
         private DateTime lastEvent = DateTime.MinValue;
 
@@ -28,22 +31,21 @@ namespace CapriDesktop
         {
             this.token = token ?? "";
             this.received = received;
-            int port = 47824;
-            int.TryParse(Environment.GetEnvironmentVariable("CAPRI_CORE_PORT"), out port);
-            if (port < 1 || port > 65535) port = 47824;
-            listener.Prefixes.Add("http://127.0.0.1:" + port + "/");
+            int port;
+            if (!int.TryParse(Environment.GetEnvironmentVariable("CAPRI_CORE_PORT"), out port) || port < 1 || port > 65535) port = 47824;
+            listener = new TcpListener(IPAddress.Loopback, port);
             try
             {
-                listener.Start();
+                listener.Start(8);
                 worker = new Thread(Listen);
                 worker.IsBackground = true;
                 worker.Name = "CAPRI coding-agent bridge";
                 worker.Start();
             }
-            catch (HttpListenerException error)
+            catch (SocketException error)
             {
                 Console.Error.WriteLine("CAPRI coding-agent bridge unavailable: " + error.Message);
-                listener.Close();
+                listener.Stop();
                 stopped = true;
             }
         }
@@ -52,79 +54,116 @@ namespace CapriDesktop
         {
             while (!stopped)
             {
-                HttpListenerContext context = null;
-                try { context = listener.GetContext(); }
-                catch (HttpListenerException) { if (stopped) break; }
+                try
+                {
+                    using (TcpClient client = listener.AcceptTcpClient())
+                    {
+                        client.ReceiveTimeout = 3000;
+                        client.SendTimeout = 3000;
+                        Handle(client.GetStream());
+                    }
+                }
+                catch (SocketException) { if (stopped) break; }
                 catch (ObjectDisposedException) { break; }
-                if (context != null) ThreadPool.QueueUserWorkItem(delegate { Handle(context); });
+                catch (IOException) { }
             }
         }
 
-        private void Handle(HttpListenerContext context)
+        private void Handle(NetworkStream stream)
         {
             try
             {
-                HttpListenerRequest request = context.Request;
-                if (request.HttpMethod != "POST" || request.Url.AbsolutePath != "/event" ||
-                    !string.IsNullOrEmpty(request.Headers["Origin"]))
+                string requestLine = ReadLine(stream, 2048);
+                if (string.IsNullOrEmpty(requestLine)) { Respond(stream, 400); return; }
+                string[] request = requestLine.Split(' ');
+                if (request.Length < 2 || request[0] != "POST" || request[1] != "/event") { Respond(stream, 404); return; }
+
+                Dictionary<string, string> headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                int headerBytes = 0;
+                while (true)
                 {
-                    context.Response.StatusCode = 404;
-                    return;
+                    string line = ReadLine(stream, 8192);
+                    if (line == null) { Respond(stream, 400); return; }
+                    headerBytes += line.Length;
+                    if (headerBytes > 8192) { Respond(stream, 413); return; }
+                    if (line.Length == 0) break;
+                    int colon = line.IndexOf(':');
+                    if (colon > 0) headers[line.Substring(0, colon).Trim()] = line.Substring(colon + 1).Trim();
                 }
 
-                byte[] supplied = Encoding.UTF8.GetBytes(request.Headers["x-capri-token"] ?? "");
+                if (headers.ContainsKey("Origin")) { Respond(stream, 403); return; }
+                string suppliedToken;
+                if (!headers.TryGetValue("x-capri-token", out suppliedToken)) suppliedToken = "";
+                byte[] supplied = Encoding.UTF8.GetBytes(suppliedToken);
                 byte[] expected = Encoding.UTF8.GetBytes(token);
-                if (expected.Length == 0 || !CryptographicOperations.FixedTimeEquals(supplied, expected))
+                if (expected.Length == 0 || !CryptographicOperations.FixedTimeEquals(supplied, expected)) { Respond(stream, 403); return; }
+
+                int length;
+                if (!headers.TryGetValue("Content-Length", out suppliedToken) || !int.TryParse(suppliedToken, out length) || length < 1 || length > 4096)
                 {
-                    context.Response.StatusCode = 403;
+                    Respond(stream, 413);
                     return;
                 }
 
-                if (request.ContentLength64 < 1 || request.ContentLength64 > 4096)
+                byte[] json = new byte[length];
+                int offset = 0;
+                while (offset < length)
                 {
-                    context.Response.StatusCode = 413;
-                    return;
+                    int read = stream.Read(json, offset, length - offset);
+                    if (read <= 0) { Respond(stream, 400); return; }
+                    offset += read;
                 }
 
                 CodingAgentPayload payload;
-                using (MemoryStream body = new MemoryStream())
-                {
-                    byte[] buffer = new byte[1024];
-                    int read;
-                    while ((read = request.InputStream.Read(buffer, 0, buffer.Length)) > 0)
-                    {
-                        if (body.Length + read > 4096) { context.Response.StatusCode = 413; return; }
-                        body.Write(buffer, 0, read);
-                    }
-                    body.Position = 0;
+                using (MemoryStream body = new MemoryStream(json))
                     payload = (CodingAgentPayload)new DataContractJsonSerializer(typeof(CodingAgentPayload)).ReadObject(body);
-                }
 
                 string message = Safe(payload == null ? null : payload.Message);
-                if (message.Length == 0) { context.Response.StatusCode = 400; return; }
+                if (message.Length == 0) { Respond(stream, 400); return; }
 
-                lock (this)
+                lock (gate)
                 {
                     if (DateTime.UtcNow - lastEvent < TimeSpan.FromSeconds(2))
                     {
-                        context.Response.StatusCode = 202;
+                        Respond(stream, 202);
                         return;
                     }
                     lastEvent = DateTime.UtcNow;
                 }
 
                 if (received != null) received(message);
-                context.Response.StatusCode = 202;
+                Respond(stream, 202);
             }
             catch (Exception error)
             {
                 Console.Error.WriteLine("CAPRI coding-agent event rejected: " + error.Message);
-                try { context.Response.StatusCode = 400; } catch (ObjectDisposedException) { }
+                try { Respond(stream, 400); } catch (IOException) { }
             }
-            finally
+        }
+
+        private static string ReadLine(Stream stream, int limit)
+        {
+            List<byte> bytes = new List<byte>();
+            while (bytes.Count < limit)
             {
-                try { context.Response.Close(); } catch (ObjectDisposedException) { }
+                int value = stream.ReadByte();
+                if (value < 0) return bytes.Count == 0 ? null : Encoding.ASCII.GetString(bytes.ToArray());
+                if (value == 10)
+                {
+                    if (bytes.Count > 0 && bytes[bytes.Count - 1] == 13) bytes.RemoveAt(bytes.Count - 1);
+                    return Encoding.ASCII.GetString(bytes.ToArray());
+                }
+                bytes.Add((byte)value);
             }
+            return null;
+        }
+
+        private static void Respond(NetworkStream stream, int status)
+        {
+            string reason = status == 202 ? "Accepted" : status == 403 ? "Forbidden" : status == 404 ? "Not Found" : status == 413 ? "Payload Too Large" : "Bad Request";
+            byte[] response = Encoding.ASCII.GetBytes("HTTP/1.1 " + status + " " + reason + "\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+            stream.Write(response, 0, response.Length);
+            stream.Flush();
         }
 
         private static string Safe(string value)
@@ -143,8 +182,7 @@ namespace CapriDesktop
         {
             if (stopped) return;
             stopped = true;
-            try { listener.Stop(); } catch (ObjectDisposedException) { }
-            try { listener.Close(); } catch (ObjectDisposedException) { }
+            listener.Stop();
             if (worker != null && worker != Thread.CurrentThread) worker.Join(500);
         }
     }

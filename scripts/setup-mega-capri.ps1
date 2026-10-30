@@ -17,9 +17,11 @@ function Require-Command([string]$Name, [string]$InstallHint) {
 Require-Command "git" "Install Git for Windows and reopen PowerShell."
 Require-Command "node" "Install Node.js 20 or newer and reopen PowerShell."
 Require-Command "npm" "Install Node.js 20 or newer and reopen PowerShell."
+Require-Command "dotnet" "Install the .NET 10 SDK and reopen PowerShell."
 
 $nodeMajor = [int]((node --version).TrimStart("v").Split(".")[0])
 if ($nodeMajor -lt 20) { throw "Node.js 20 or newer is required; found $nodeMajor." }
+if (-not ((dotnet --list-sdks) -match "^10\.")) { throw ".NET 10 SDK is required to build the unified desktop host." }
 
 Push-Location $root
 try {
@@ -39,6 +41,9 @@ try {
         Copy-Item -Force $adapter "src/main/core-bridge.js"
     }
     finally { Pop-Location }
+
+    dotnet build cross/Capri.Cross.csproj -c Release -o out/cross
+    if ($LASTEXITCODE -ne 0) { throw "Could not build the unified CAPRI desktop host." }
 
     npm ci --prefix $companion
     if ($LASTEXITCODE -ne 0) { throw "Could not install the companion dependencies." }

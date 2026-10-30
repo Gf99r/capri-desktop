@@ -24,6 +24,9 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
       - name: Apply Mega CAPRI companion adapter
         shell: pwsh
         run: |
@@ -31,6 +34,8 @@ jobs:
           git apply ../../integrations/companion-adapter/patches/main-core-mode.patch
           Pop-Location
           Copy-Item integrations/companion-adapter/core-bridge.js integrations/capri-desktop1/src/main/core-bridge.js
+      - name: Build unified .NET host
+        run: dotnet build cross/Capri.Cross.csproj -c Release -o out/cross
       - name: Install and test coding-agent companion
         shell: pwsh
         run: |
