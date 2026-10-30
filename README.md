@@ -294,3 +294,32 @@ Free for anything non-commercial: use her, share her, change her. No selling her
 Have fun and more updates to come!
 
 <sub>Window perch and music perch animations: her artist, who prefers to stay private. Setup guide based on Dancer's guide in the Discord. Font: Share Tech Mono (OFL). Free voice: Kokoro-82M (Apache-2.0). Her own ears: [NVIDIA Parakeet TDT 0.6B v2](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v2) for English and [v3](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) for 25 European languages ([CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/)), int8 exports by sherpa-onnx. Both run with [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) (Apache-2.0). HD voice: [Qwen3-TTS 1.7B](https://github.com/QwenLM/Qwen3-TTS) (Apache-2.0), run with [qwentts.cpp](https://github.com/ServeurpersoCom/qwentts.cpp) (MIT).</sub>
+
+
+## Mega CAPRI integration (preview)
+
+The unified desktop setup keeps the existing .NET CAPRI application as the main assistant and includes the newer Electron companion as the coding-agent sidecar. The companion adds animated coding-session awareness for Claude Code, Codex and Antigravity; its original source, assets, tests and PolyForm Noncommercial license are retained as a pinned Git submodule at `integrations/capri-desktop1`.
+
+### Set up
+
+On Windows, with Git and Node.js 20 or newer installed:
+
+```powershell
+./scripts/setup-mega-capri.ps1
+```
+
+To also install the companion's opt-in hooks for all three coding agents:
+
+```powershell
+./scripts/setup-mega-capri.ps1 -InstallHooks
+```
+
+Build the main CAPRI app using the existing instructions above, then launch both parts:
+
+```powershell
+./scripts/start-mega-capri.ps1
+```
+
+Use `-SkipCore` to launch only the coding-agent companion. The companion's hook bridge binds to `127.0.0.1` and keeps its existing event filtering and payload limits. Hook installation changes the respective coding-agent configuration files; it is therefore an explicit setup option, not an automatic side effect.
+
+The companion remains a separately built Electron process in this first integration stage; the two original repositories remain unchanged. Its source is pinned to a specific commit so builds are reproducible. Both projects' original license and attribution notices must accompany any redistribution.

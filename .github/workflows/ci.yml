@@ -19,6 +19,16 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Install and test coding-agent companion
+        shell: pwsh
+        run: |
+          npm ci --prefix integrations/capri-desktop1
+          npm run test:hooks --prefix integrations/capri-desktop1
       - name: Build and smoke test
         shell: pwsh
         run: ./ci/build-windows.ps1 -OutputDirectory out/windows -SmokeTest -SmokeSeconds 180

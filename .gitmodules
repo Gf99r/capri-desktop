@@ -1,0 +1,3 @@
+[submodule "integrations/capri-desktop1"]
+	path = integrations/capri-desktop1
+	url = https://github.com/Gf99r/capri-desktop1.git
