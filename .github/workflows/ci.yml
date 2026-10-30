@@ -24,10 +24,18 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+      - name: Apply Mega CAPRI companion adapter
+        shell: pwsh
+        run: |
+          Push-Location integrations/capri-desktop1
+          git apply ../../integrations/companion-adapter/patches/main-core-mode.patch
+          Pop-Location
+          Copy-Item integrations/companion-adapter/core-bridge.js integrations/capri-desktop1/src/main/core-bridge.js
       - name: Install and test coding-agent companion
         shell: pwsh
         run: |
           npm ci --prefix integrations/capri-desktop1
+          node --test integrations/companion-adapter/tests/core-bridge.test.js
           npm run test:hooks --prefix integrations/capri-desktop1
       - name: Build and smoke test
         shell: pwsh

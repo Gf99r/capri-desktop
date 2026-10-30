@@ -298,7 +298,7 @@ Have fun and more updates to come!
 
 ## Mega CAPRI integration (preview)
 
-The unified desktop setup keeps the existing .NET CAPRI application as the main assistant and includes the newer Electron companion as the coding-agent sidecar. The companion adds animated coding-session awareness for Claude Code, Codex and Antigravity; its original source, assets, tests and PolyForm Noncommercial license are retained as a pinned Git submodule at `integrations/capri-desktop1`.
+The unified desktop setup keeps the existing .NET CAPRI application as the visible assistant and runs the newer Electron companion as a background coding-agent observer. The companion adds event awareness for Claude Code, Codex and Antigravity; its original source, assets, tests and PolyForm Noncommercial license are retained as a pinned Git submodule at `integrations/capri-desktop1`. Coding-agent events cross a loopback-only, token-authenticated HTTP bridge and appear in the .NET CAPRI speech bubble. Only the assistant name, hook event name and tool name are forwarded; prompts, file contents, commands, and tool arguments are not sent to the bridge.
 
 ### Set up
 
@@ -314,7 +314,7 @@ To also install the companion's opt-in hooks for all three coding agents:
 ./scripts/setup-mega-capri.ps1 -InstallHooks
 ```
 
-Build the main CAPRI app using the existing instructions above, then launch both parts:
+Build the main CAPRI app using the existing instructions above, then launch the unified experience:
 
 ```powershell
 ./scripts/start-mega-capri.ps1
@@ -322,4 +322,4 @@ Build the main CAPRI app using the existing instructions above, then launch both
 
 Use `-SkipCore` to launch only the coding-agent companion. The companion's hook bridge binds to `127.0.0.1` and keeps its existing event filtering and payload limits. Hook installation changes the respective coding-agent configuration files; it is therefore an explicit setup option, not an automatic side effect.
 
-The companion remains a separately built Electron process in this first integration stage; the two original repositories remain unchanged. Its source is pinned to a specific commit so builds are reproducible. Both projects' original license and attribution notices must accompany any redistribution.
+The companion remains a separately built Electron process, but in the unified launch it runs without a second desktop character; the .NET app owns the visible character and voice. If the .NET executable is not found, the launcher falls back to the companion's full Electron UI. The bridge token is generated per launch and passed only to those two child processes. The two original repositories remain unchanged. The companion source is pinned to a specific commit so builds are reproducible. Both projects' original license and attribution notices must accompany any redistribution.

@@ -433,6 +433,7 @@ namespace CapriDesktop
         private double nextCheck;
         private int asking;
         private Smoke smoke;
+        private CodingAgentBridge codingAgentBridge;
 
         internal Pet(IClassicDesktopStyleApplicationLifetime desktop)
         {
@@ -515,6 +516,17 @@ namespace CapriDesktop
             // A saved key's models are read now, so a stuck NVIDIA model has others to hand over to.
             if (Brain.Remote != null && Program.Smoke == null) ListCloud();
             Talk = new Talk(this);
+            string bridgeToken = Environment.GetEnvironmentVariable("CAPRI_BRIDGE_TOKEN");
+            if (Program.Smoke == null && !string.IsNullOrEmpty(bridgeToken))
+            {
+                codingAgentBridge = new CodingAgentBridge(bridgeToken, delegate(string message)
+                {
+                    Dispatcher.UIThread.Post(delegate
+                    {
+                        if (!Away && !Shushed) Talk.Answer("coding agent", message, 0.25);
+                    });
+                });
+            }
             // Her bubble and pill come up by themselves with her, so they leave the keyboard alone too. Her typing box takes it.
             Unfocus(Talk.Bubble);
             Unfocus(Talk.Pill);
@@ -3599,6 +3611,7 @@ namespace CapriDesktop
             Brain.Cancel();
             voice.Stop();
             if (presence != null) presence.Dispose();
+            if (codingAgentBridge != null) codingAgentBridge.Dispose();
             Talk.Dismiss();
             GlitchOut(delegate
             {
@@ -3611,6 +3624,7 @@ namespace CapriDesktop
         internal void Finish(int code)
         {
             frames.Stop();
+            if (codingAgentBridge != null) codingAgentBridge.Dispose();
             Talk.Dismiss();
             desktop.Shutdown(code);
         }
