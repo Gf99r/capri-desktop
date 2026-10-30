@@ -3160,6 +3160,11 @@ namespace CapriDesktop
             {
                 this.owner = owner;
                 Zoom = zoom;
+                // Fit the panel to the available display. CI runners can have smaller desktops than
+                // users' monitors, so high-zoom previews must not be clipped off-screen.
+                Rectangle work = Screen.FromControl(owner).WorkingArea;
+                zoom = Math.Min(zoom, Math.Min(work.Width / (float)Wide, work.Height / (float)Tall));
+                zoom = Math.Max(0.5f, zoom);
                 Text = "Security";
                 Icon = owner.Icon;
                 ShowInTaskbar = false;
