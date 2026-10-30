@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPANION="$ROOT/integrations/capri-desktop1"
-PATCH="$ROOT/integrations/companion-adapter/patches/main-core-mode.patch"
+ADAPTER_SCRIPT="$ROOT/integrations/companion-adapter/apply-companion-adapter.cjs"
 ADAPTER="$ROOT/integrations/companion-adapter/core-bridge.js"
 INSTALL_HOOKS=0
 if [[ "${1:-}" == "--install-hooks" ]]; then INSTALL_HOOKS=1; fi
@@ -17,14 +17,7 @@ dotnet --list-sdks | grep -Eq '^10\.' || { echo ".NET 10 SDK is required." >&2; 
 
 cd "$ROOT"
 git submodule update --init --recursive
-cd "$COMPANION"
-if git apply --check "$PATCH" 2>/dev/null; then
-  git apply "$PATCH"
-elif ! grep -q "forwardCodingEvent" src/main/main.js; then
-  echo "The adapter patch does not match the pinned companion revision." >&2
-  exit 1
-fi
-cp "$ADAPTER" src/main/core-bridge.js
+node "$ADAPTER_SCRIPT" "$COMPANION" "$ADAPTER"
 
 dotnet build "$ROOT/cross/Capri.Cross.csproj" -c Release -o "$ROOT/out/cross"
 npm ci

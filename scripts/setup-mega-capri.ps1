@@ -5,7 +5,7 @@ param(
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $companion = Join-Path $root "integrations/capri-desktop1"
-$patch = Join-Path $root "integrations/companion-adapter/patches/main-core-mode.patch"
+$adapterScript = Join-Path $root "integrations/companion-adapter/apply-companion-adapter.cjs"
 $adapter = Join-Path $root "integrations/companion-adapter/core-bridge.js"
 
 function Require-Command([string]$Name, [string]$InstallHint) {
@@ -28,19 +28,8 @@ try {
     git submodule update --init --recursive
     if ($LASTEXITCODE -ne 0) { throw "Could not initialize the CAPRI companion submodule." }
 
-    Push-Location $companion
-    try {
-        git apply --check $patch 2>$null
-        if ($LASTEXITCODE -eq 0) {
-            git apply $patch
-            if ($LASTEXITCODE -ne 0) { throw "Could not apply the Mega CAPRI companion adapter patch." }
-        }
-        elseif (-not (Select-String -Path "src/main/main.js" -Pattern "forwardCodingEvent" -Quiet)) {
-            throw "The companion adapter patch does not match the pinned source revision."
-        }
-        Copy-Item -Force $adapter "src/main/core-bridge.js"
-    }
-    finally { Pop-Location }
+    node $adapterScript $companion $adapter
+    if ($LASTEXITCODE -ne 0) { throw "Could not apply the Mega CAPRI companion adapter." }
 
     dotnet build cross/Capri.Cross.csproj -c Release -o out/cross
     if ($LASTEXITCODE -ne 0) { throw "Could not build the unified CAPRI desktop host." }
