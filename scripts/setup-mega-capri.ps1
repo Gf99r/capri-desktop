@@ -37,7 +37,7 @@ try {
     npm ci --prefix $companion
     if ($LASTEXITCODE -ne 0) { throw "Could not install the companion dependencies." }
 
-    node --test (Join-Path $root "integrations/companion-adapter/tests/core-bridge.test.js")
+    node --test (Join-Path $root "integrations/companion-adapter/tests/*.test.js")
     if ($LASTEXITCODE -ne 0) { throw "The Mega CAPRI bridge tests failed." }
     npm run test:hooks --prefix $companion
     if ($LASTEXITCODE -ne 0) { throw "The companion hook tests failed." }

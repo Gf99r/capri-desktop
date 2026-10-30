@@ -21,7 +21,7 @@ node "$ADAPTER_SCRIPT" "$COMPANION" "$ADAPTER"
 
 dotnet build "$ROOT/cross/Capri.Cross.csproj" -c Release -o "$ROOT/out/cross"
 npm ci
-node --test "$ROOT/integrations/companion-adapter/tests/core-bridge.test.js"
+node --test "$ROOT/integrations/companion-adapter/tests/"*.test.js
 npm run test:hooks
 
 if (( INSTALL_HOOKS )); then
