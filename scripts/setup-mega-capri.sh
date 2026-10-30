@@ -20,14 +20,14 @@ git submodule update --init --recursive
 node "$ADAPTER_SCRIPT" "$COMPANION" "$ADAPTER"
 
 dotnet build "$ROOT/cross/Capri.Cross.csproj" -c Release -o "$ROOT/out/cross"
-npm ci
+npm ci --prefix "$COMPANION"
 node --test "$ROOT/integrations/companion-adapter/tests/"*.test.js
-npm run test:hooks
+npm run test:hooks --prefix "$COMPANION"
 
 if (( INSTALL_HOOKS )); then
-  npm run hooks:install
-  npm run hooks:codex:install
-  npm run hooks:agy:install
+  npm run hooks:install --prefix "$COMPANION"
+  npm run hooks:codex:install --prefix "$COMPANION"
+  npm run hooks:agy:install --prefix "$COMPANION"
 fi
 
 echo "Mega CAPRI is ready. Launch it with scripts/start-mega-capri.sh"
