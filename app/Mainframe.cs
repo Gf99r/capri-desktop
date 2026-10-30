@@ -3165,7 +3165,8 @@ namespace CapriDesktop
                 ShowInTaskbar = false;
                 FormBorderStyle = FormBorderStyle.None;
                 StartPosition = FormStartPosition.Manual;
-                AutoScaleMode = AutoScaleMode.Dpi;
+                // All controls and the client area are explicitly scaled by Z(zoom); avoid scaling twice.
+                AutoScaleMode = AutoScaleMode.None;
                 AutoScaleDimensions = new SizeF(96, 96);
                 Font = Type(9f * zoom);
                 BackColor = Ground;
