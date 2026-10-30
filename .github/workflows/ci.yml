@@ -48,6 +48,47 @@ jobs:
           name: smoke-windows
           path: out/windows/smoke
 
+  standalone-windows:
+    runs-on: windows-2025
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Apply companion adapter
+        run: node integrations/companion-adapter/apply-companion-adapter.cjs integrations/capri-desktop1 integrations/companion-adapter/core-bridge.js
+      - name: Publish self-contained .NET host
+        run: dotnet publish cross/Capri.Cross.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -o out/standalone/host
+      - name: Package Electron companion with its runtime
+        shell: pwsh
+        run: |
+          npm ci --prefix integrations/capri-desktop1
+          npm exec --prefix integrations/capri-desktop1 -- electron-builder --win --dir
+          New-Item -ItemType Directory -Force out/standalone/companion | Out-Null
+          Copy-Item integrations/capri-desktop1/dist/win-unpacked/* out/standalone/companion -Recurse -Force
+      - name: Assemble standalone launcher
+        shell: pwsh
+        run: Copy-Item packaging/Launch-CAPRI.ps1 out/standalone/Launch-CAPRI.ps1
+      - name: Install Inno Setup
+        run: choco install innosetup --yes --no-progress
+      - name: Build single-file installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force out/installer | Out-Null
+          & 'C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe' packaging/CAPRI-Mega.iss
+          if ($LASTEXITCODE -ne 0) { throw 'CAPRI standalone installer build failed.' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CAPRI-Mega-Windows-Installer
+          path: out/installer/CAPRI-Mega-Setup.exe
+          if-no-files-found: error
+
   linux:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
